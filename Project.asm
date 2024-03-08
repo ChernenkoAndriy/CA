@@ -1,16 +1,15 @@
-.386
-DATA SEGMENT USE16
-MESG DB 'Hello word','$'
-DATA ENDS
-CODE SEGMENT USE16
-    ASSUME CS:CODE,DS:DATA
-BEG:
-    MOV AX,DATA
-    MOV DS,AX
-    MOV AH,9
-    MOV DX, OFFSET MESG
-    INT 21H
-    MOV AH,4CH
-    INT 21H;back to dos
-CODE ENDS
-END BEG
+.model small
+.data
+    oneChar dw "Enter a string" 
+.code
+read_next:
+    mov ah, 3Fh
+    mov bx, 0h  ; stdin handle
+    mov cx, 1   ; 1 byte to read
+    mov dx, oneChar   ; read to ds:dx 
+    int 21h   ;  ax = number of bytes read
+    ; do something with [oneChar]
+    or ax,ax
+    jnz read_next
+
+end main
