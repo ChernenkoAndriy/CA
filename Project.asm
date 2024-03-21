@@ -95,9 +95,7 @@ push ax
 push bx
 push cx
 push dx
-mov ah, [curkey]
-lea dx, keys
-mov cx,  0
+
 pop dx 
 pop cx
 pop bx
