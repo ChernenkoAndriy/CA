@@ -69,9 +69,23 @@ notSpace:
         inc numberInd
           jmp endProc
 itsWord:
-       
+      lea si, temp_Key_Ar
+        mov bx, key_Temp_Ind 
+        add si, bx
+        mov al, tempChar
+        mov [si], al
+        inc key_Temp_Ind  
 
 endProc:
     ret
  work_with_char endp
+char_to_number PROC
+    lea si, temp_value
+    add si, numberInd
+    mov bx, 0
+    mov cx, 0
+    mov al, [si]
+    sub al, '0'
+ret
 
+char_to_number endp
