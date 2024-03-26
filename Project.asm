@@ -78,14 +78,30 @@ itsWord:
 
 endProc:
     ret
- work_with_char endp
+ work_with_char endp 
 char_to_number PROC
-    lea si, temp_value
-    add si, numberInd
     mov bx, 0
     mov cx, 0
+
+calcNum:
+    lea si, temp_value 
+    add si, numberInd
+    dec si
+    sub si, cx
+    mov ax, 0
     mov al, [si]
+    cmp ax, 45
+    jnz notMinus
+notMinus:        
     sub al, '0'
+    push cx
+    cmp cx, 0
+    jnz notZer
+notZer:
+    mulByTen:
+    mov dx, 10
+    mul dx
+    loop mulByTen
 ret
 
 char_to_number endp
