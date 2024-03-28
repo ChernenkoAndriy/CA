@@ -1,161 +1,235 @@
+
 .model small
 .stack 3h
 
 .data
-keys db 10000*16 dup(0)
-key_Times dw 5500 dup(0)
-num_Values dw 10000 dup(0)
-tempChar db 0
-presInd dw 0
-newInd dw 0
-temp_Key_Ar db 16 dup(0)
-key_Temp_Ind dw 0
-isWord db 1
-temp_value db 16 dup(0)
-numberInd dw 0
-filename  db "inp.txt"
-handle dw 0
-
+keys db 10000*16 dup(0)         ; Масив ключів
+key_Times dw 5500 dup(0)        ; Масив для зберігання кількості зустрічень кожного ключа
+num_Values dw 10000 dup(0)      ; Масив числових значень
+tempChar db 0                   ; Тимчасовий символ
+presInd dw 0                    ; Поточний індекс у масиві ключів
+newInd dw 0                     ; Новий індекс у масиві ключів
+temp_Key_Ar db 16 dup(0)        ; Тимчасовий масив для зберігання ключів
+key_Temp_Ind dw 0               ; Індекс тимчасового масиву ключів
+isWord db 1                     ; Флаг, що вказує на наявність слова
+temp_value db 16 dup(0)         ; Тимчасовий масив для зберігання числових значень
+numberInd dw 0                  ; Індекс тимчасового масиву числових значень
+filename  db "inp.txt"          ; Ім'я файлу
+handle dw 0                     ; Дескриптор файлу
 
 .code
 main proc
- mov ax, @data
-    mov ds, ax
+ mov ax, @data                 ; Завантаження адреси сегмента даних у регістр ax
+    mov ds, ax                 ; Завантаження адреси сегмента даних у регістр ds
 
-    lea dx, fileName
-    mov ah, 03Dh 
-    mov  al, 0
-    int 21h
-    mov [handle] , ax
+    lea dx, fileName           ; Завантаження адреси імені файлу у регістр dx
+    mov ah, 03Dh               ; Функція 3Dh - відкриття файлу
+    mov  al, 0                 ; Режим відкриття (0 - читання)
+    int 21h                    ; Виклик преривання для відкриття файлу
+    mov [handle] , ax          ; Зберігання дескриптора файлу
 
 read_next:
-    mov ah, 3Fh
-    mov bx, [handle]
-    mov cx, 1  
-    lea dx, tempChar   
-    int 21h   
-    push ax
+    mov ah, 3Fh                ; Функція 3Fh - читання з файлу
+    mov bx, [handle]           ; Завантаження дескриптора файлу у регістр bx
+    mov cx, 1                  ; Кількість байт, які треба прочитати (один символ)
+    lea dx, tempChar           ; Завантаження адреси тимчасового символу у регістр dx
+    int 21h                    ; Виклик преривання для читання символу з файлу   
+    push ax                    ; Збереження регістрів
     push bx
     push cx
     push dx
-    call work_with_char 
-    pop dx
+    call work_with_char        ; Виклик процедури обробки символу
+    pop dx                     ; Відновлення регістрів
     pop cx
     pop bx
     pop ax
-    cmp ax, 0
-    jnz read_next
-    lea si, temp_value 
-    dec numberInd
-    add si, numberInd
-    mov [si],0
-    call char_to_number
-    mov ax, 4C00h
-    int 21h
+    cmp ax, 0                  ; Перевірка на кінець файлу
+    jnz read_next              ; Якщо не кінець, продовжуємо читання
+    lea si, temp_value         ; Завантаження адреси тимчасового масиву числових значень
+    dec numberInd              ; Зменшення індексу числових значень
+    add si, numberInd          ; Додавання індексу до адреси масиву
+    mov [si],0                 ; Обнулення значення в масиві числових значень
+    call char_to_number        ; Виклик процедури перетворення символу у число
+    mov ax, 4C00h              ; Функція 4Ch - завершення роботи програми
+    int 21h                    ; Виклик преривання для завершення програми
 
 main endp
 
-
 work_with_char proc
-cmp tempChar,0Dh
-jnz notCR
-cmp isWord,0
-jne endProc
-mov isWord,1
-call char_to_number
-jmp endProc
+cmp tempChar,0Dh                ; Перевірка символу на перенос рядка
+jnz notCR                       ; Якщо символ не переносу рядка, перевіряємо далі
+cmp isWord,0                    ; Перевірка флагу на наявність слова
+jne endProc                     ; Якщо слово вже було, завершуємо процедуру
+mov isWord,1                    ; Встановлюємо флаг наявності слова
+call char_to_number             ; Виклик процедури перетворення символу у число
+jmp endProc                     ; Завершення процедури
+
 notCR:
-cmp tempChar,0Ah
-jnz notLF
-cmp isWord,0
-jnz endProc
-mov isWord,1
-call char_to_number
-jmp endProc
+cmp tempChar,0Ah                ; Перевірка символу на символ нового рядка
+jnz notLF                       ; Якщо символ не нового рядка, перевіряємо далі
+cmp isWord,0                    ; Перевірка флагу на наявність слова
+jnz endProc                     ; Якщо слово вже було, завершуємо процедуру
+mov isWord,1                    ; Встановлюємо флаг наявності слова
+call char_to_number             ; Виклик процедури перетворення символу у число
+jmp endProc                     ; Завершення процедури
 notLF:
-cmp tempChar,20h
-jnz notSpace
-mov isWord,0
-call work_with_key
-jmp endProc
+cmp tempChar,20h                ; Перевірка символу на пробіл
+jnz notSpace                    ; Якщо символ не пробіл, перевіряємо далі
+mov isWord,0                    ; Скидаємо флаг наявності слова
+call work_with_key              ;Виклик процедури роботи з ключем
+jmp endProc                     ; Завершення процедури
 notSpace:
-cmp isWord, 0
-jnz itsWord
-lea si, temp_value 
-mov bx, numberInd
-add si, bx
-mov al, tempChar
-mov [si], al
-inc numberInd
-jmp endProc
+cmp isWord, 0                   ; Перевірка флагу на наявність слова
+jnz itsWord                     ; Якщо слово, переходимо до обробки слова
+lea si, temp_value              ; Завантаження адреси тимчасового масиву числових значень
+mov bx, numberInd               ; Завантаження значення індексу числових значень у регістр bx
+add si, bx                      ; Додавання значення індексу до адреси масиву
+mov al, tempChar                ; Завантаження значення символу у регістр al
+mov [si], al                    ; Зберігання значення символу у масиві числових значень
+inc numberInd                   ; Збільшення індексу числових значень
+jmp endProc                     ; Завершення процедури
 itsWord:
-lea si, temp_Key_Ar
-mov bx, key_Temp_Ind 
-add si, bx
-mov al, tempChar
-mov [si], al
-inc key_Temp_Ind 
+lea si, temp_Key_Ar             ; Завантаження адреси тимчасового масиву ключів
+mov bx, key_Temp_Ind            ; Завантаження значення індексу тимчасового масиву ключів у регістр bx
+add si, bx                      ; Додавання значення індексу до адреси масиву
+mov al, tempChar                ; Завантаження значення символу у регістр al
+mov [si], al                    ; Зберігання значення символу у тимчасовому масиві ключів
+inc key_Temp_Ind                ; Збільшення індексу тимчасового масиву ключів
 endProc:
 ret
 work_with_char endp 
+
 char_to_number PROC
-mov bx, 0
-mov cx, 0
-
+mov bx, 0                       ; Збереження 0 у регістрі bx (результат обчислення числа)
+mov cx, 0                       ; Збереження 0 у регістрі cx (лічильник)
 calcNum:
-    lea si, temp_value 
-    add si, numberInd
-    dec si
-    sub si, cx
-    mov ax, 0
-    mov al, [si]
-    cmp ax, 45
-    jnz notMinus
-    neg bx
-    jmp afterCalc
-
+    lea si, temp_value          ; Завантаження адреси тимчасового масиву числових значень
+    add si, numberInd           ; Додавання індексу до адреси масиву
+    dec si                      ; Зменшення адреси на одиницю
+    sub si, cx                  ; Вирахування адреси елемента масиву числових значень
+    mov ax, 0                   ; Збереження 0 у регістрі ax
+    mov al, [si]                ; Завантаження значення символу у регістр al
+    cmp ax, 45                  ; Перевірка, чи є символ мінусом
+    jnz notMinus                ; Якщо символ не мінус, переходимо далі
+    neg bx                      ; Якщо символ мінус, змінюємо знак числа
+    jmp afterCalc               ; Переходимо до обчислення числа
 notMinus:        
-    sub al, '0'
-    push cx
-    cmp cx, 0
-    jnz notZer
-    jmp endOFMul
-
+    sub al, '0'                 ; Віднімання значення '0' від значення символу
+    push cx                     ; Збереження значення лічильника
+    cmp cx, 0                   ; Перевірка, чи лічильник не рівний 0
+    jnz notZer                  ; Якщо лічильник не рівний 0, переходимо до множення на 10
+    jmp endOFMul                ; Якщо лічильник рівний 0, завершуємо множення на 10
 notZer:
-    mulByTen:
-    mov dx, 10
-    mul dx
-    loop mulByTen
-
+    mulByTen:                   ; Початок множення на 10
+    mov dx, 10                  ; Завантаження 10 у регістр dx
+    mul dx                      ; Множення bx на dx
+    loop mulByTen               ; Повторення множення, поки лічильник не дорівнює 0
 endOFMul:    
-    pop cx
-    add bx, ax
-    inc cx
-    cmp cx, numberInd
-    jnz calcNum
-
+    pop cx                      ; Відновлення значення лічильника
+    add bx, ax                  ; Додавання ax до bx
+    inc cx                      ; Збільшення лічильника
+    cmp cx, numberInd           ; Перевірка, чи лічильник не дорівнює індексу масиву числових значень
+    jnz calcNum                 ; Якщо лічильник не дорівнює індексу, повторюємо обчислення числа
 afterCalc:    
-    lea si, num_Values
-    mov ax, presInd
-    shl ax, 1  
-    add si, ax
-    add bx, [si]
-    mov [si], bx
-    mov numberInd, 0
-    mov cx, 0
-
+    lea si, num_Values          ; Завантаження адреси масиву числових значень
+    mov ax, presInd             ; Завантаження значення поточного індексу у регістр ax
+    shl ax, 1                   ; Зсув вліво на один біт (еквівалент множення на 2)
+    add si, ax                  ; Додавання значення ax до адреси масиву
+    add bx, [si]                ; Додавання bx до вмісту комірки масиву
+    mov [si], bx                ; Збереження значення в масиві числових значень
+    mov numberInd, 0            ; Обнулення значення індексу масиву числових значень
+    mov cx, 0                   ; Обнулення значення лічильника
 fillZeros:
-    lea si, temp_value 
-    add si, cx
-    mov [si], 0
-    inc cx
-    cmp cx, 9
-    jnz fillZeros
-
+    lea si, temp_value          ; Завантаження адреси тимчасового масиву числових значень
+    add si, cx                  ; Додавання значення лічильника до адреси масиву
+    mov [si], 0                 ; Обнулення комірки масиву
+    inc cx                      ; Збільшення лічильника
+    cmp cx, 9                   ; Перевірка, чи лічильник не дорівнює 9
+    jnz fillZeros               ; Якщо лічильник не дорівнює 9, повторюємо обнулення
 ret
 
 char_to_number endp
 
 work_with_key proc
+    mov ax, 0                   ; Збереження 0 у регістрі ax
+    mov bx, 0                   ; Збереження 0 у регістрі bx
+    mov cx, 0                   ; Збереження 0 у регістрі cx
+    mov dx, 0                   ; Збереження 0 у регістрі dx
+    cmp newInd,0                ; Перевірка нового індексу на 0
+    jnz findKey                 ; Якщо індекс не 0, переходимо до пошуку ключа
+jmp addNewKey                   ; В іншому випадку, переходимо до додавання нового ключа  
+    findKey:
+    mov dx,0                    ; Обнулення регістру dx
+        checkPresKey:
+        lea si,  keys           ; Завантаження адреси масиву ключів
+        shl cx, 4                ; Зсув вліво на 4 біти (еквівалент множення на 16)
+        add si, cx               ; Додавання значення cx до адреси масиву
+        shr cx,4                 ; Зсув вправо на 4 біти (еквівалент ділення на 16)
+        add si, dx               ; Додавання значення dx до адреси масиву
+        mov al,[si]              ; Завантаження значення з комірки масиву ключів у регістр al
+        lea di, temp_Key_Ar      ; Завантаження адреси тимчасового масиву ключів
+        add di,dx                ; Додавання значення dx до адреси масиву
+        mov ah, [di]             ; Завантаження значення з комірки тимчасового масиву ключів у регістр ah
+        cmp al,ah                ; Порівняння значень al та ah
+        jne notEqualChar         ; Якщо значення неоднакові, переходимо до мітки notEqualChar
+            mov bx,1             ; Якщо значення однакові, змінюємо bx на 1
+            jmp contComp         ; Переходимо до мітки contComp
+            notEqualChar:       ; Мітка для випадку, коли значення неоднакові
+            mov bx,0             ; Зміна bx на 0
+            mov dx, 15           ; Присвоєння значення 15 регістру dx
+        contComp:                ; Мітка для продовження порівняння
+            inc dx               ; Збільшення dx на одиницю
+            cmp dx,16            ; Порівняння значень dx та 16
+            jnz checkPresKey     ; Якщо значення dx не дорівнює 16, переходимо до мітки checkPresKey
+    cmp bx,0                     ; Порівняння значень bx та 0
+    jnz keyPresent               ; Якщо значення bx не дорівнює 0, переходимо до мітки keyPresent 
+    inc cx                       ; Збільшення cx на одиницю
+    cmp cx, newInd               ; Порівняння значень cx та нового індексу
+    jne findKey                  ; Якщо значення cx не дорівнює новому індексу, переходимо до мітки findKey
+    mov cx, 0                    ; Присвоєння значення 0 регістру cx
+    addNewKey:                   ; Мітка для додавання нового ключа
+    lea si, temp_Key_Ar          ; Завантаження адреси тимчасового масиву ключів
+    add si, cx                   ; Додавання значення cx до адреси масиву
+    lea di, keys                 ; Завантаження адреси масиву ключів
+    mov ax,  newInd              ; Завантаження значення нового індексу у регістр ax
+    shl ax,4                     ; Зсув вліво на 4 біти (еквівалент множення на 16)
+    add di,cx                    ; Додавання значення cx до адреси масиву
+    add di, ax                   ; Додавання значення ax до адреси масиву
+    mov al, [si]                 ; Завантаження значення з комірки тимчасового масиву ключів у регістр al
+    mov [di], al                 ; Збереження значення у масиві ключів
+    inc cx                       ; Збільшення cx на одиницю
+    cmp cx, 16                   ; Порівняння значень cx та 16
+    jnz addNewKey                ; Якщо значення cx не дорівнює 16, переходимо до мітки addNewKey
+    mov cx, newInd               ; Завантаження значення нового індексу у регістр cx
+    mov presInd,cx               ; Збереження значення у presInd
+    inc newInd                   ; Збільшення нового індексу на одиницю
+    lea si, key_Times            ; Завантаження адреси масиву для зберігання кількості зустрічей ключа
+    mov cx, presInd              ; Завантаження значення поточного індексу у регістр cx
+    shl cx,1                     ; Зсув вліво на один біт (еквівалент множення на 2)
+    add si, cx                   ; Додавання значення cx до адреси масиву
+    mov ax,1                     ; Завантаження значення 1 у регістр ax
+    mov [si],ax                  ; Збереження значення у масиві
+    jmp endOfCheck               ; Переходимо до мітки endOfCheck
+keyPresent:
+    mov presInd,cx               ; Збереження значення у presInd
+    lea si, key_Times            ; Завантаження адреси масиву для зберігання кількості зустрічей ключа
+    mov cx, presInd              ; Завантаження значення поточного індексу у регістр cx
+    shl cx,1                     ; Зсув вліво на один біт (еквівалент множення на 2)
+    add si, cx                   ; Додавання значення cx до адреси масиву
+    mov ax, [si]                 ; Завантаження значення з комірки масиву у регістр ax
+    inc ax                       ; Збільшення значення ax на одиницю
+    mov [si],ax                  ; Збереження значення у масиві
+endOfCheck:
+    mov key_Temp_Ind,0           ; Обнулення значення індексу тимчасового масиву ключів
+    mov cx,0                      ; Обнулення значення лічильника
+  fillZeroskey:                   ; Мітка для заповнення нулями
+    lea si, temp_Key_Ar          ; Завантаження адреси тимчасового масиву ключів
+    add si, cx                   ; Додавання значення лічильника до адреси масиву
+    mov [si],0                   ; Обнулення комірки масиву
+    inc cx                       ; Збільшення лічильника
+    cmp cx,15                    ; Порівняння значень лічильника та 15
+    jnz fillZeroskey             ; Якщо значення лічильника не дорівнює 15, переходимо до мітки fillZeroskey
+    ret                          ; Повернення із процедури
 work_with_key endp
-end main
+end main                       ; Закінчення основної процедури
+```
